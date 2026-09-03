@@ -1,0 +1,804 @@
+:root {
+  /* ── Core palette ── */
+  --black: #000000;
+  --white: #ffffff;
+  --white-32: rgba(255, 255, 255, 0.32);
+
+  /* Legacy aliases kept for internal components */
+  --app-bg: var(--black);
+  --text-primary: var(--white);
+  --text-secondary: #8888a0;
+  --text-muted: #555566;
+  --accent: #00ffaa;
+  --accent-dim: #00cc88;
+  --accent-glow: rgba(0, 255, 170, 0.3);
+  --border: #2a2a3a;
+  --error: #ff4466;
+  --warning: #ffaa00;
+
+  /* ── Typography ── */
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'Kode Mono', monospace;
+  --font-kode-mono: 'Kode Mono', monospace;
+  --font-b612-mono: 'B612 Mono', monospace;
+  --letter-spacing-sub: -0.04em;
+
+  /* ── Camera frame ── */
+  --camera-margin: 24px;
+
+  /* ── Shutter button ── */
+  --shutter-size: 72px;
+  --shutter-size-mobile: 72px;
+
+  /* ── Flip button ── */
+  --flip-btn-size: 44px;
+
+  /* ── Info button (kept for JS compatibility) ── */
+  --info-button-size: 44px;
+  --info-button-size-mobile: 40px;
+  --info-button-bg: rgba(255, 255, 255, 0.1);
+  --info-button-border: rgba(255, 255, 255, 0.2);
+
+  /* ── Connection status ── */
+  --status-connected: #00ffaa;
+  --status-disconnected: #ff4466;
+  --status-size: 8px;
+
+  /* ── Progress bar ── */
+  --progress-height: 48px;
+  --progress-height-mobile: 40px;
+  --progress-bg: rgba(60, 60, 60, 0.9);
+  --progress-fill: var(--white);
+  --progress-marker-width: 4px;
+  --progress-marker-color: rgba(0, 0, 0, 0.3);
+  --progress-text-size: 0.75rem;
+  --progress-text-size-mobile: 0.7rem;
+
+  /* ── Controls layout ── */
+  --controls-gap: 24px;
+  --controls-gap-mobile: 20px;
+  --controls-padding-bottom: 24px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-display);
+  background: var(--black);
+  color: var(--white);
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────
+   Page layout
+───────────────────────────────────────── */
+
+.container {
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* ─────────────────────────────────────────
+   Viewport area — top 80% of the screen, full-bleed
+───────────────────────────────────────── */
+
+.viewport-area {
+  flex: 0 0 80%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+/* ─────────────────────────────────────────
+   Viewport frame (holds preview-area)
+───────────────────────────────────────── */
+
+.viewport-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ─────────────────────────────────────────
+   Preview area — fills the viewport frame
+───────────────────────────────────────── */
+
+.preview-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--black);
+  overflow: hidden;
+}
+
+/* Model viewer layer — overlays the preview viewport */
+.model-viewer-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: var(--black);
+  overflow: hidden;
+}
+
+.model-viewer-layer model-viewer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Point Cloud Canvas */
+#pointCloudCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  display: none;
+}
+
+/* Point Cloud Status Overlay */
+.point-cloud-status {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.point-cloud-status span {
+  padding: 8px 20px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--white-32);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(8px);
+}
+
+/* Model Status Badge */
+.model-status-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 255, 170, 0.2);
+}
+
+.preview-area video,
+.preview-area img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ─────────────────────────────────────────
+   Permission placeholder
+───────────────────────────────────────── */
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  /* Dot grid */
+  background-color: var(--black);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.18) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+
+/* Soft dark ellipse in the centre so text is readable over the dots */
+.placeholder-blur-overlay {
+  position: absolute;
+  width: 80%;
+  height: 55%;
+  background: rgba(0, 0, 0, 0.92);
+  border-radius: 50%;
+  filter: blur(64px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.placeholder-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 0 24px;
+  user-select: none;
+}
+
+.placeholder-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: 0.02em;
+}
+
+.placeholder-sub {
+  font-family: var(--font-kode-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ─────────────────────────────────────────
+   Controls strip — fixed height from bottom so viewport never shifts
+───────────────────────────────────────── */
+
+.controls {
+  flex: 0 0 20%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--camera-margin);
+}
+
+/* Hidden — remove from layout entirely */
+.info-button {
+  display: none !important;
+}
+
+.controls-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--controls-gap);
+  width: 100%;
+  min-width: 0;
+  height: 84px; /* fixed: tallest mode is 40px bar + 4px gap + 40px cancel */
+}
+
+/* Review / generation / model-ready control groups */
+.review-controls,
+.generation-controls,
+.model-ready-controls {
+  display: none;
+  flex: 1;
+  gap: 10px;
+  min-width: 0;
+  align-items: center;
+}
+
+.model-ready-controls {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.blender-connect-hint {
+  font-family: 'B612 Mono', monospace;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.6;
+}
+
+.blender-connect-url-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.blender-connect-url {
+  color: rgba(255, 255, 255, 0.75);
+  word-break: break-all;
+  white-space: normal;
+}
+
+/* Toast notification */
+.copy-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: rgba(30, 30, 40, 0.95);
+  color: #fff;
+  font-family: 'B612 Mono', monospace;
+  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  z-index: 9999;
+  white-space: nowrap;
+}
+
+.copy-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Buttons row inside model-ready-controls */
+.model-ready-controls .model-ready-btns {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.generation-controls {
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.generation-progress {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--progress-height);
+}
+
+.generation-progress .progress-bar {
+  width: 100%;
+  height: 100%;
+}
+
+/* Mode activation */
+.controls-main.isolate-mode .isolate-controls   { display: flex; }
+.controls-main.review-mode .review-controls     { display: flex; }
+.controls-main.generation-mode .generation-controls { display: flex; }
+.controls-main.model-ready-mode .model-ready-controls { display: flex; }
+
+/* Hide shutter + flip + spacer in all non-default modes */
+.controls-main.isolate-mode .shutter-button,
+.controls-main.review-mode .shutter-button,
+.controls-main.generation-mode .shutter-button,
+.controls-main.model-ready-mode .shutter-button,
+.controls-main.isolate-mode .flip-btn,
+.controls-main.review-mode .flip-btn,
+.controls-main.generation-mode .flip-btn,
+.controls-main.model-ready-mode .flip-btn,
+.controls-main.isolate-mode .flip-spacer,
+.controls-main.review-mode .flip-spacer,
+.controls-main.generation-mode .flip-spacer,
+.controls-main.model-ready-mode .flip-spacer {
+  display: none !important;
+}
+
+/* Prevent other panels from showing in wrong modes */
+.controls-main.generation-mode .review-controls,
+.controls-main.model-ready-mode .review-controls,
+.controls-main.model-ready-mode .generation-controls {
+  display: none !important;
+}
+
+/* ─────────────────────────────────────────
+   Tech-style review buttons
+───────────────────────────────────────── */
+
+.tech-btn {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border: none;
+  cursor: pointer;
+  padding: 0 16px;
+  font-family: var(--font-kode-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
+}
+
+.tech-btn:active:not(:disabled) { transform: scale(0.98); }
+.tech-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.tech-btn__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+}
+
+.tech-btn__bracket  { width: 8px; height: 20px; flex-shrink: 0; }
+.tech-btn__arrow    { width: 8px; height: 10px; flex-shrink: 0; }
+.tech-btn__label    { white-space: nowrap; }
+
+/* Primary — white */
+.tech-btn--primary { background: var(--white); color: var(--black); box-shadow: 0 0 12px rgba(255, 255, 255, 0.35), 0 0 24px rgba(255, 255, 255, 0.15); }
+.tech-btn--primary:hover:not(:disabled) { background: #f0f0f0; }
+
+/* Secondary — grey */
+.tech-btn--secondary { background: #2a2a2a; color: var(--white); }
+.tech-btn--secondary:hover:not(:disabled) { background: #353535; }
+
+/* Square cancel */
+.tech-btn.tech-btn--cancel {
+  flex: 0 0 var(--progress-height);
+  width: var(--progress-height);
+  height: var(--progress-height);
+  min-width: var(--progress-height);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+/* Top-left L-streak on secondary */
+.tech-btn__streak {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+}
+.tech-btn__streak::before,
+.tech-btn__streak::after {
+  content: '';
+  position: absolute;
+  background: var(--white);
+}
+.tech-btn__streak::before { top: 0; left: 0; width: 10px; height: 1.5px; }
+.tech-btn__streak::after  { top: 0; left: 0; width: 1.5px; height: 10px; }
+
+/* Bottom-right triangle on secondary */
+.tech-btn__corner-tri {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 10px 10px;
+  border-color: transparent transparent var(--white) transparent;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   Shutter button — 72 × 72 solid white
+   Outer ring: 1 px white-32, 4 px gap via outline-offset
+───────────────────────────────────────── */
+
+.shutter-button {
+  width: var(--shutter-size);
+  height: var(--shutter-size);
+  border-radius: 50%;
+  background: var(--white);
+  border: none;
+  outline: 1px solid var(--white-32);
+  outline-offset: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.shutter-button::after { display: none; }
+
+.shutter-button:active:not(:disabled) {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.shutter-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────
+   Flip camera button — mobile / touch only
+───────────────────────────────────────── */
+
+.flip-spacer,
+.flip-btn {
+  /* Hidden on desktop (fine pointer / hover capable) */
+  display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .flip-spacer {
+    display: block;
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+  }
+
+  .flip-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--white-32);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  .flip-btn svg {
+    width: 18px;
+    height: 18px;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.4));
+  }
+
+  .flip-btn:active {
+    background: rgba(255, 255, 255, 0.18);
+    transform: scale(0.92);
+  }
+}
+
+/* ─────────────────────────────────────────
+   Info / connection button (hidden, kept for JS compat)
+───────────────────────────────────────── */
+
+.connection-status {
+  width: var(--status-size);
+  height: var(--status-size);
+  border-radius: 50%;
+  background: var(--status-disconnected);
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  transition: background 0.3s ease;
+}
+
+.connection-status.connected {
+  background: var(--status-connected);
+  box-shadow: 0 0 8px rgba(0, 255, 170, 0.6);
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  background: rgba(0, 0, 0, 0.9);
+  color: var(--white);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+  border: 1px solid var(--white-32);
+}
+
+/* ─────────────────────────────────────────
+   Dot ripple canvas — overlays viewport during isolation loading
+───────────────────────────────────────── */
+
+.dot-ripple-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   Isolate-mode controls — replaces shutter in controls-main
+   Total height: 40px bar + 4px gap + 40px btn = 84px (= controls-main min-height)
+───────────────────────────────────────── */
+
+.isolate-controls {
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.isolate-loader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.segments-track {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  flex: 1;
+  height: 52px;
+}
+
+.seg {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+  transition: background 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.isolate-label {
+  font-family: var(--font-kode-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+  width: 100%;
+}
+
+/* 40 × 40 cancel — secondary style */
+.tech-btn--cancel-sm {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+/* ─────────────────────────────────────────
+   Generation progress bar (controls strip)
+───────────────────────────────────────── */
+
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: var(--progress-height);
+  background: var(--progress-bg);
+  overflow: hidden;
+}
+
+.progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--progress-fill);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--progress-marker-width);
+  height: 60%;
+  background: var(--progress-marker-color);
+}
+
+.loading-text {
+  position: relative;
+  top: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--font-kode-mono);
+  font-size: var(--progress-text-size);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.loading-text-dark  { color: rgba(0, 0, 0, 0.8); mix-blend-mode: multiply; }
+.loading-text-light { color: rgba(255, 255, 255, 0.4); }
+
+.spinner { display: none; }
+
+/* ─────────────────────────────────────────
+   Send to Blender accent button
+───────────────────────────────────────── */
+
+.btn-accent {
+  width: var(--shutter-size);
+  height: var(--shutter-size);
+  border-radius: 50%;
+  background: var(--accent);
+  border: 4px solid var(--accent-glow);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.btn-accent:active:not(:disabled) {
+  transform: scale(0.9);
+  background: var(--accent-dim);
+  box-shadow: 0 0 24px var(--accent-glow);
+}
+
+.btn-accent:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ─────────────────────────────────────────
+   Responsive
+───────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .controls-main {
+    gap: var(--controls-gap-mobile);
+  }
+
+  .tech-btn {
+    height: 44px;
+    font-size: 12px;
+    padding: 0 10px;
+  }
+
+  .tech-btn__content { gap: 10px; }
+  .tech-btn__bracket { width: 6px; height: 16px; }
+  .tech-btn__arrow   { width: 6px; height: 8px; }
+
+  .generation-progress .progress-bar {
+    height: var(--progress-height-mobile);
+  }
+
+  .tech-btn.tech-btn--cancel {
+    flex: 0 0 var(--progress-height-mobile);
+    width: var(--progress-height-mobile);
+    height: var(--progress-height-mobile);
+    min-width: var(--progress-height-mobile);
+    font-size: 0.75rem;
+  }
+
+  .progress-bar    { height: var(--progress-height-mobile); }
+  .loading-text    { font-size: var(--progress-text-size-mobile); }
+  .segments-track  { height: 40px; }
+}

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo → 3D</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=B612+Mono:ital,wght@0,400;0,700;1,400&family=Kode+Mono:wght@400;500;600;700&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+  <script type="importmap">
+    { "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+    }}
+  </script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Viewport area fills the top 80% of the screen -->
+    <div class="viewport-area">
+    <div class="viewport-frame">
+      <!-- Camera / Preview -->
+      <div class="preview-area">
+        <video id="camera" autoplay playsinline></video>
+        <canvas id="snapshot" style="display:none;"></canvas>
+        <img id="preview" style="display:none;" alt="Captured preview">
+
+        <!-- Permission / idle placeholder -->
+        <div id="placeholder" class="placeholder">
+          <div class="placeholder-blur-overlay"></div>
+          <div class="placeholder-content">
+            <span class="placeholder-title">[ENABLE PERMISSION]</span>
+            <span class="placeholder-sub">You'll need the camera to take photos</span>
+          </div>
+        </div>
+
+        <!-- 3D Model Viewer (same viewport as camera/preview) -->
+        <div class="model-viewer-layer" id="modelViewerContainer" style="display:none;">
+          <canvas id="pointCloudCanvas"></canvas>
+          <model-viewer
+            id="modelViewer"
+            alt="Generated 3D model"
+            camera-controls
+            touch-action="pan-y"
+            auto-rotate
+            shadow-intensity="1"
+            style="width: 100%; height: 100%; opacity: 0;">
+          </model-viewer>
+          <div id="pointCloudStatus" class="point-cloud-status" style="display:none;">
+            <span id="pointCloudStatusText">Generating...</span>
+          </div>
+          <div id="modelStatusBadge" class="model-status-badge" style="display:none;">
+            <span id="modelStatusText">Preview</span>
+          </div>
+        </div>
+
+        <!-- Dot ripple canvas (isolation loading step) -->
+        <canvas id="dotRippleCanvas" class="dot-ripple-canvas" style="display:none;"></canvas>
+      </div>
+    </div>
+    </div><!-- /viewport-area -->
+
+    <!-- Controls -->
+    <div class="controls">
+      <!-- Blender info button — hidden for now -->
+      <button id="infoBtn" class="info-button" style="display:none;" aria-hidden="true">
+        <span class="connection-status" id="connectionStatus"></span>
+        ℹ
+        <div class="tooltip" id="tooltip">Blender: Disconnected</div>
+      </button>
+
+      <div class="controls-main" id="controlsMain">
+        <!-- Balance spacer mirrors flip-btn width on mobile so shutter stays centred -->
+        <div class="flip-spacer" aria-hidden="true"></div>
+
+        <!-- Large circular shutter button -->
+        <button id="capture" class="shutter-button" aria-label="Capture photo"></button>
+
+        <!-- Flip camera — mobile only -->
+        <button id="flipBtn" class="flip-btn" aria-label="Flip camera">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 11C4 7.13 7.13 4 11 4C13.2 4 15.16 5.02 16.46 6.63" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+            <polyline points="13.5,4 16.5,4 16.5,7" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M18 11C18 14.87 14.87 18 11 18C8.8 18 6.84 16.98 5.54 15.37" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+            <polyline points="8.5,18 5.5,18 5.5,15" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </button>
+
+        <!-- Isolation / Gemini loading -->
+        <div class="isolate-controls" id="isolateControls">
+          <div class="isolate-loader">
+            <div class="segments-track" id="segmentsTrack"></div>
+            <button id="isolateCancelBtn" class="tech-btn tech-btn--secondary tech-btn--cancel-sm" type="button" aria-label="Cancel"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 2.5L11.5 11.5M11.5 2.5L2.5 11.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+          </div>
+          <div class="isolate-label" id="isolateLabel">Processing...</div>
+        </div>
+
+        <!-- Model generation progress -->
+        <!-- OLD PROGRESS BAR (saved for reference):
+        <div class="generation-controls" id="generationControls">
+          <div class="generation-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" id="generationProgressFill"></div>
+              <div class="loading-text loading-text-light" id="generationLoadingTextLight">Generating...</div>
+              <div class="loading-text loading-text-dark" id="generationLoadingTextDark">Generating...</div>
+            </div>
+          </div>
+          <button id="cancelGenerationBtn" class="tech-btn tech-btn--secondary tech-btn--cancel" type="button" aria-label="Cancel generation">✕</button>
+        </div>
+        -->
+        <div class="generation-controls" id="generationControls">
+          <div class="isolate-loader">
+            <div class="segments-track" id="generationSegmentsTrack"></div>
+            <button id="cancelGenerationBtn" class="tech-btn tech-btn--secondary tech-btn--cancel-sm" type="button" aria-label="Cancel generation"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 2.5L11.5 11.5M11.5 2.5L2.5 11.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+          </div>
+          <div class="isolate-label" id="generationLabel">Generating...</div>
+        </div>
+
+        <!-- Photo review controls (after capture + isolation) -->
+        <div class="review-controls" id="reviewControls">
+          <button id="confirmBtn" class="tech-btn tech-btn--primary" type="button">
+            <span class="tech-btn__content">
+              <svg class="tech-btn__bracket" viewBox="0 0 8 20" aria-hidden="true">
+                <path d="M6 2H2V18H6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <span class="tech-btn__label">CONTINUE</span>
+              <svg class="tech-btn__arrow" viewBox="0 0 10 12" aria-hidden="true">
+                <path d="M0 0L10 6L0 12Z" fill="currentColor"/>
+              </svg>
+            </span>
+          </button>
+
+          <button id="retakeBtn" class="tech-btn tech-btn--secondary" type="button">
+            <span class="tech-btn__streak" aria-hidden="true"></span>
+            <span class="tech-btn__content">
+              <svg class="tech-btn__bracket" viewBox="0 0 8 20" aria-hidden="true">
+                <path d="M6 2H2V18H6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <span class="tech-btn__label">RETAKE</span>
+              <svg class="tech-btn__bracket tech-btn__bracket--right" viewBox="0 0 8 20" aria-hidden="true">
+                <path d="M2 2H6V18H2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+            </span>
+            <span class="tech-btn__corner-tri" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <!-- Model ready controls (after 3D generation succeeds) -->
+        <div class="model-ready-controls" id="modelReadyControls">
+          <div class="blender-connect-hint" id="blenderConnectHint">
+            Make sure the Blender addon from the repo is installed and paste this URL into it:<br>
+            <span class="blender-connect-url-row"><span class="blender-connect-url" id="blenderConnectUrl"></span><button class="blender-copy-btn tech-btn tech-btn--secondary tech-btn--cancel-sm" id="blenderCopyBtn" aria-label="Copy URL" title="Copy URL"><svg width="18" height="18" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3 8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.2"/></svg></button></span>
+          </div>
+          <div class="model-ready-btns">
+          <button id="sendToBlender" class="tech-btn tech-btn--primary" type="button" disabled>
+            <span class="tech-btn__content">
+              <svg class="tech-btn__bracket" viewBox="0 0 8 20" aria-hidden="true">
+                <path d="M6 2H2V18H6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <span class="tech-btn__label">SEND TO BLENDER</span>
+              <svg class="tech-btn__arrow" viewBox="0 0 10 12" aria-hidden="true">
+                <path d="M0 0L10 6L0 12Z" fill="currentColor"/>
+              </svg>
+            </span>
+          </button>
+
+          <button id="startAgainBtn" class="tech-btn tech-btn--secondary" type="button">
+            <span class="tech-btn__streak" aria-hidden="true"></span>
+            <span class="tech-btn__content">
+              <svg class="tech-btn__bracket" viewBox="0 0 8 20" aria-hidden="true">
+                <path d="M6 2H2V18H6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <span class="tech-btn__label">START AGAIN</span>
+              <svg class="tech-btn__bracket tech-btn__bracket--right" viewBox="0 0 8 20" aria-hidden="true">
+                <path d="M2 2H6V18H2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+            </span>
+            <span class="tech-btn__corner-tri" aria-hidden="true"></span>
+          </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="copy-toast" id="copyToast">Copied to clipboard.</div>
+  <script type="module" src="point-cloud-loader.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
