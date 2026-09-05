@@ -235,14 +235,14 @@ async def generate_3d(image: UploadFile = File(...)):
         print(f"[Tripo] Image uploaded, token: {image_token[:20]}...")
         
         # Step 2: Create both tasks in parallel
-        print("[Tripo] Creating preview task (Turbo)...")
+        print("[Tripo] Creating preview task (v3.0)...")
         preview_task_request = client.post(
             f"{TRIPO_BASE_URL}/task",
             headers={**headers, "Content-Type": "application/json"},
             json={
                 "type": "image_to_model",
                 "file": {"type": "png", "file_token": image_token},
-                "model_version": "Turbo-v1.0-20250506",
+                "model_version": "v3.0-20250812",
                 "texture": False,
                 "pbr": False,
                 "export_uv": False,  # Skipping UVs is significantly faster
@@ -250,14 +250,14 @@ async def generate_3d(image: UploadFile = File(...)):
             }
         )
 
-        print("[Tripo] Creating final task (v2.5)...")
+        print("[Tripo] Creating final task (v3.1)...")
         final_task_request = client.post(
             f"{TRIPO_BASE_URL}/task",
             headers={**headers, "Content-Type": "application/json"},
             json={
                 "type": "image_to_model",
                 "file": {"type": "png", "file_token": image_token},
-                "model_version": "v2.5-20250123",  # Balanced quality/speed
+                "model_version": "v3.1-20260211",  # H3: photoreal fidelity
                 "texture": True,
                 "pbr": True
                 # Use default settings for standard quality
@@ -272,6 +272,8 @@ async def generate_3d(image: UploadFile = File(...)):
             error_data = preview_resp.json() if preview_resp.headers.get("content-type", "").startswith("application/json") else {}
             print(f"[Tripo] Preview task failed with status {preview_resp.status_code}")
             print(f"[Tripo] Preview error data: {error_data}")
+            if final_resp.status_code != 200:
+                print(f"[Tripo] Final task also failed with status {final_resp.status_code}: {final_resp.text}")
             raise HTTPException(
                 status_code=preview_resp.status_code,
                 detail=f"Tripo preview task failed: {error_data.get('message', preview_resp.text)}"
