@@ -1,7 +1,7 @@
 bl_info = {
     "name": "WebSocket Auto Import",
     "author": "ahujasid",
-    "version": (0, 1, 0),
+    "version": (0, 1, 1),
     "blender": (3, 0, 0),
     "location": "View3D > Sidebar > WS Import",
     "description": "Connects to the Camera to 3D relay server and auto-imports GLB/OBJ models",
@@ -17,7 +17,7 @@ import os
 import urllib.request
 from urllib.parse import urlparse
 
-from websocket import WebSocketApp
+from .ws_client import WebSocketClient
 
 
 def download_file(url: str) -> str:
@@ -43,7 +43,7 @@ def download_file(url: str) -> str:
 class WSImportState:
     def __init__(self):
         self.ws_thread = None
-        self.ws_app = None
+        self.ws_client = None
         self.connected = False
         self.queue = []
 
@@ -68,17 +68,18 @@ class WSImportState:
 
         def on_close(_, __, ___):
             self.connected = False
+            print("[WSImport] Connection closed.")
 
-        self.ws_app = WebSocketApp(ws_url, on_message=on_message, on_open=on_open, on_close=on_close)
-        self.ws_thread = threading.Thread(target=self.ws_app.run_forever, daemon=True)
+        self.ws_client = WebSocketClient(ws_url, on_message=on_message, on_open=on_open, on_close=on_close)
+        self.ws_thread = threading.Thread(target=self.ws_client.run_forever, daemon=True)
         self.ws_thread.start()
         bpy.app.timers.register(self._tick, first_interval=1.0)
 
     def stop(self):
-        if self.ws_app:
-            self.ws_app.close()
+        if self.ws_client:
+            self.ws_client.close()
         self.connected = False
-        self.ws_app = None
+        self.ws_client = None
         self.ws_thread = None
         self.queue.clear()
 

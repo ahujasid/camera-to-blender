@@ -14,6 +14,8 @@ The camera UI is built for phone. You run the server on the computer where Blend
 - A [Gemini](https://aistudio.google.com/) API key — optional, removes the photo background
 - [ngrok](https://ngrok.com/download) — required for phone use, since phone cameras need HTTPS
 
+The Blender add-on needs nothing installed into Blender's Python — it only uses modules bundled with Blender.
+
 ## Setup
 
 ### 1. Install
@@ -76,6 +78,8 @@ To test from your laptop webcam, skip ngrok. Open `http://localhost:8000` and po
 
 ## If something breaks
 
+**Add-on won't enable, "No module named 'websocket'"** — you have the old 0.1.0 zip. Reinstall the current `ws_import_addon.zip` and enable it again.
+
 **Camera won't open on phone** — you need the `https://` ngrok URL, not a local IP.
 
 **"Failed to send to Blender"** — the add-on isn't connected. Check the WS Import panel says Connected, and that your URL starts with `wss://` and ends with `?client=blender`.
@@ -89,7 +93,7 @@ To test from your laptop webcam, skip ngrok. Open `http://localhost:8000` and po
 ```
 relay_server.py          The server: talks to the APIs, relays models to Blender
 webapp/                  The phone camera app
-blender_addon/           Add-on source
+blender_addon/           Add-on source (ships its own stdlib WebSocket client)
 ws_import_addon.zip      The add-on to install in Blender
 ```
 
